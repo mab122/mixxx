@@ -1,5 +1,12 @@
 # Mixxx
 
+> [!WARNING]
+> **Unofficial fork of Mixxx with vibecoded (AI-generated) Jellyfin support.**
+> The Jellyfin integration was written by an AI agent (Claude, Anthropic) at the
+> request of mab122 and has not been reviewed or endorsed by the Mixxx project.
+> Please do not report problems of this fork to Mixxx.
+> See [JELLYFIN.md](JELLYFIN.md) for details.
+
 [![GitHub latest tag](https://img.shields.io/github/tag/mixxxdj/mixxx.svg)](https://mixxx.org/download)
 [![Packaging status](https://repology.org/badge/tiny-repos/mixxx.svg)](https://repology.org/metapackage/mixxx/versions)
 [![Build status](https://github.com/mixxxdj/mixxx/actions/workflows/build.yml/badge.svg)](https://github.com/mixxxdj/mixxx/actions/workflows/build.yml)
