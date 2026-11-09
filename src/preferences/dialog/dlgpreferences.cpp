@@ -48,6 +48,8 @@
 #include "preferences/dialog/dlgprefmodplug.h"
 #endif // __MODPLUG__
 
+#include "preferences/dialog/dlgprefjellyfin.h"
+
 #ifdef Q_OS_MACOS
 #include "util/darkappearance.h"
 #endif
@@ -250,6 +252,12 @@ DlgPreferences::DlgPreferences(
             tr("Modplug Decoder"),
             "ic_preferences_modplug.svg");
 #endif // __MODPLUG__
+
+    addPageWidget(PreferencesPage(
+                          new DlgPrefJellyfin(this, m_pConfig),
+                          new QTreeWidgetItem(contentsTreeWidget, QTreeWidgetItem::Type)),
+            tr("Jellyfin"),
+            "ic_preferences_jellyfin.svg");
 
     // Find accept and apply buttons
     const auto buttons = buttonBox->buttons();

@@ -1447,6 +1447,13 @@ add_library(
   src/library/itunes/itunesplaylistmodel.cpp
   src/library/itunes/itunestrackmodel.cpp
   src/library/itunes/itunesxmlimporter.cpp
+  src/library/jellyfin/dlgjellyfinlogin.cpp
+  src/library/jellyfin/jellyfincache.cpp
+  src/library/jellyfin/jellyfinclient.cpp
+  src/library/jellyfin/jellyfindao.cpp
+  src/library/jellyfin/jellyfinfeature.cpp
+  src/library/jellyfin/jellyfinsettings.cpp
+  src/library/jellyfin/jellyfintrackmodel.cpp
   src/library/library_prefs.cpp
   src/library/remotetrackprovider.cpp
   src/library/library.cpp
@@ -1579,6 +1586,7 @@ add_library(
   src/preferences/dialog/dlgprefvinyldlg.ui
   src/preferences/dialog/dlgprefwaveform.cpp
   src/preferences/dialog/dlgprefwaveformdlg.ui
+  src/preferences/dialog/dlgprefjellyfin.cpp
   src/preferences/effectchainpresetlistmodel.cpp
   src/preferences/effectmanifesttablemodel.cpp
   src/preferences/replaygainsettings.cpp
@@ -2932,6 +2940,7 @@ if(BUILD_TESTING)
     src/test/lcstest.cpp
     src/test/learningutilstest.cpp
     src/test/libraryscannertest.cpp
+    src/test/jellyfintest.cpp
     src/test/librarytest.cpp
     src/test/looping_control_test.cpp
     src/test/main.cpp

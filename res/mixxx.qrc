@@ -19,6 +19,7 @@
         <file>images/library/ic_library_history.svg</file>
         <file>images/library/ic_library_history_current.svg</file>
         <file>images/library/ic_library_itunes.svg</file>
+        <file>images/library/ic_library_jellyfin.svg</file>
         <file>images/library/ic_library_tracks.svg</file> <!-- from Gnome high contrast icons LGPL 2.1 -->
         <file>images/library/ic_library_playlist.svg</file>
         <file>images/library/ic_library_prepare.svg</file>
@@ -69,6 +70,7 @@
         <file>images/preferences/dark/ic_custom.svg</file>
         <file>images/preferences/dark/ic_mixxx_symbolic.svg</file>
         <file>images/preferences/dark/ic_none.svg</file>
+        <file>images/preferences/dark/ic_preferences_jellyfin.svg</file>
       <!-- light icon set for preferences -->
         <file>images/preferences/light/ic_preferences_autodj.svg</file>
         <file>images/preferences/light/ic_preferences_bpmdetect.svg</file>
@@ -96,6 +98,7 @@
         <file>images/preferences/light/ic_custom.svg</file>
         <file>images/preferences/light/ic_mixxx_symbolic.svg</file>
         <file>images/preferences/light/ic_none.svg</file>
+        <file>images/preferences/light/ic_preferences_jellyfin.svg</file>
       <!-- magnifier for the Search button in Search related tracks menu -->
         <file>images/ic_magnifier.svg</file>
       <!-- skin oversize warning -->

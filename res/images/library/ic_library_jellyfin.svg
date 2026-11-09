@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <!-- Jellyfin logo: circle with stylised J -->
+  <circle cx="12" cy="12" r="11" fill="none" stroke="currentColor" stroke-width="1.5"/>
+  <!-- Descending stem of J -->
+  <line x1="12" y1="5" x2="12" y2="15.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+  <!-- J hook curling left -->
+  <path d="M12 15.5 Q12 19 8.5 19 Q6 19 6 16.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+  <!-- Serif top bar -->
+  <line x1="9.5" y1="5" x2="14.5" y2="5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+</svg>

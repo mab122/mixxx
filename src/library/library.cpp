@@ -18,6 +18,7 @@
 #endif
 #include "library/externaltrackcollection.h"
 #include "library/itunes/itunesfeature.h"
+#include "library/jellyfin/jellyfinfeature.h"
 #include "library/library_prefs.h"
 #include "library/librarycontrol.h"
 #include "library/libraryfeature.h"
@@ -202,6 +203,11 @@ Library::Library(
             m_pConfig->getValue(
                     ConfigKey(kConfigGroup, "ShowITunesLibrary"), true)) {
         addFeature(new ITunesFeature(this, m_pConfig));
+    }
+    if (JellyfinFeature::isSupported() &&
+            m_pConfig->getValue(
+                    ConfigKey(kConfigGroup, "ShowJellyfinLibrary"), true)) {
+        addFeature(new JellyfinFeature(this, m_pConfig));
     }
     if (TraktorFeature::isSupported() &&
             m_pConfig->getValue(
