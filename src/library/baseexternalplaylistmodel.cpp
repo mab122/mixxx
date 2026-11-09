@@ -184,7 +184,7 @@ TrackId BaseExternalPlaylistModel::doGetTrackId(const TrackPointer& pTrack) cons
         for (int row = 0; row < rowCount(); ++row) {
             QString nativeLocation = getFieldString(index(row, 0),
                     ColumnCache::COLUMN_TRACKLOCATIONSTABLE_LOCATION);
-            QString location = QDir::fromNativeSeparators(nativeLocation);
+            QString location = resolveLocation(nativeLocation);
             if (location == pTrack->getLocation()) {
                 return TrackId(index(row, 0).data());
             }

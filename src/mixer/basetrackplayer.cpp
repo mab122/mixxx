@@ -13,6 +13,7 @@
 #include "engine/enginebuffer.h"
 #include "engine/enginemixer.h"
 #include "engine/sync/enginesync.h"
+#include "library/remotetrackprovider.h"
 #include "mixer/playerinfo.h"
 #include "mixer/playermanager.h"
 #include "moc_basetrackplayer.cpp"
@@ -425,6 +426,8 @@ void BaseTrackPlayerImpl::slotEjectTrack(double v) {
     if (m_pPlay->toBool()) {
         return;
     }
+    // Ejecting cancels a load that is still waiting for a download.
+    DeferredTrackLoad::invalidate(getGroup());
 
     if (m_pPlayerManager) {
         mixxx::Duration elapsed = m_ejectTimer.restart();
@@ -553,7 +556,9 @@ void BaseTrackPlayerImpl::slotLoadTrack(TrackPointer pNewTrack,
 void BaseTrackPlayerImpl::slotLoadTrack(TrackPointer pNewTrack,
         bool bPlay) {
 #endif
-    //qDebug() << "BaseTrackPlayerImpl::slotLoadTrack" << getGroup() << pNewTrack.get();
+    // qDebug() << "BaseTrackPlayerImpl::slotLoadTrack" << getGroup() << pNewTrack.get();
+    //  Any load cancels a load that is still waiting for a download.
+    DeferredTrackLoad::invalidate(getGroup());
     // Before loading the track, ensure we have access. This uses lazy
     // evaluation to make sure track isn't NULL before we dereference it.
     if (pNewTrack) {

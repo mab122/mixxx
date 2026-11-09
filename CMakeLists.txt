@@ -1448,6 +1448,7 @@ add_library(
   src/library/itunes/itunestrackmodel.cpp
   src/library/itunes/itunesxmlimporter.cpp
   src/library/library_prefs.cpp
+  src/library/remotetrackprovider.cpp
   src/library/library.cpp
   src/library/librarycontrol.cpp
   src/library/libraryfeature.cpp

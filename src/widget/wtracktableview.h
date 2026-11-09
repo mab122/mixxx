@@ -1,7 +1,9 @@
 #pragma once
 
 #include <QAbstractItemModel>
+#include <QPersistentModelIndex>
 #include <QSortFilterProxyModel>
+#include <QTimer>
 
 #include "control/controlproxy.h"
 #include "control/pollingcontrolproxy.h"
@@ -211,6 +213,11 @@ class WTrackTableView : public WLibraryTableView {
     mixxx::Duration m_lastUserAction;
     bool m_selectionChangedSinceLastGuiTick;
     bool m_loadCachedOnly;
+
+    // Prefetch a remote track (see TrackModel::isTrackAvailable()) once it
+    // has been the only selected track for a while.
+    QTimer m_prefetchTimer;
+    QPersistentModelIndex m_prefetchIndex;
 
     ControlProxy* m_pCOTGuiTick;
     ControlProxy* m_pKeyNotation;

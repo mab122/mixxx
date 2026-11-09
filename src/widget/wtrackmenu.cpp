@@ -6,6 +6,7 @@
 #include <QList>
 #include <QListWidget>
 #include <QModelIndex>
+#include <QPointer>
 #include <QVBoxLayout>
 
 #include "analyzer/analyzerscheduledtrack.h"
@@ -20,6 +21,7 @@
 #include "library/dlgtrackmetadataexport.h"
 #include "library/externaltrackcollection.h"
 #include "library/library.h"
+#include "library/remotetrackprovider.h"
 #include "library/trackcollection.h"
 #include "library/trackcollectionmanager.h"
 #include "library/trackmodel.h"
@@ -2000,21 +2002,54 @@ void WTrackMenu::loadSelectionToGroup(const QString& group,
 void WTrackMenu::loadSelectionToGroup(const QString& group,
         bool play) {
 #endif
+    const bool allowLoadToPlayingDeck = m_pConfig->getValueString(
+                                                         ConfigKey("[Controls]",
+                                                                 "AllowTrackLoadToPlayingDeck"))
+                                                .toInt();
+    auto deckRejectsLoad = [allowLoadToPlayingDeck, group]() {
+        // If the track load override is disabled, check to see if a track is
+        // playing before trying to load it
+        // TODO(XXX): Check for other than just the first preview deck.
+        return !allowLoadToPlayingDeck && group != "[PreviewDeck1]" &&
+                ControlObject::get(ConfigKey(group, "play")) > 0.0;
+    };
+
+    if (m_pTrackModel && !m_trackIndexList.isEmpty() &&
+            !m_pTrackModel->isTrackAvailable(m_trackIndexList.first())) {
+        // Remote track: load it as soon as it has been downloaded.
+        if (deckRejectsLoad()) {
+            return;
+        }
+        const quint64 token = DeferredTrackLoad::begin(group);
+        QPointer<WTrackMenu> pThis(this);
+        m_pTrackModel->requestTrack(m_trackIndexList.first(),
+                [pThis,
+                        token,
+                        group,
+#ifdef __STEM__
+                        stemMask,
+#endif
+                        play,
+                        deckRejectsLoad](TrackPointer pTrack) {
+                    if (!pThis || !pTrack || deckRejectsLoad() ||
+                            !DeferredTrackLoad::isStillWanted(group, token)) {
+                        return;
+                    }
+#ifdef __STEM__
+                    emit pThis->loadTrackToPlayer(pTrack, group, stemMask, play);
+#else
+            emit pThis->loadTrackToPlayer(pTrack, group, play);
+#endif
+                });
+        return;
+    }
+
     TrackPointer pTrack = getFirstTrackPointer();
     if (!pTrack) {
         return;
     }
-
-    // If the track load override is disabled, check to see if a track is
-    // playing before trying to load it
-    if (!(m_pConfig->getValueString(
-                           ConfigKey("[Controls]", "AllowTrackLoadToPlayingDeck"))
-                        .toInt())) {
-        // TODO(XXX): Check for other than just the first preview deck.
-        if (group != "[PreviewDeck1]" &&
-                ControlObject::get(ConfigKey(group, "play")) > 0.0) {
-            return;
-        }
+    if (deckRejectsLoad()) {
+        return;
     }
 
     // TODO: load track from this class without depending on

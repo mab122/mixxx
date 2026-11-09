@@ -2,6 +2,7 @@
 
 #include <QDrag>
 #include <QModelIndex>
+#include <QPointer>
 #include <QScrollBar>
 #include <QShortcut>
 #include <QStylePainter>
@@ -12,6 +13,7 @@
 #include "library/library.h"
 #include "library/library_prefs.h"
 #include "library/librarytablemodel.h"
+#include "library/remotetrackprovider.h"
 #include "library/searchqueryparser.h"
 #include "library/trackcollection.h"
 #include "library/trackcollectionmanager.h"
@@ -39,6 +41,11 @@ const ConfigKey kVScrollBarPosConfigKey{
         QStringLiteral("[Library]"),
         QStringLiteral("VScrollBarPos")};
 
+// Remote tracks are prefetched when they stay selected for ~0.5 s: the
+// selection is evaluated after 100 ms of inactivity (see slotGuiTick50ms)
+// plus this delay. Scrolling through the library does not download anything.
+constexpr int kRemoteTrackPrefetchDelayMs = 400;
+
 } // anonymous namespace
 
 WTrackTableView::WTrackTableView(QWidget* pParent,
@@ -60,6 +67,17 @@ WTrackTableView::WTrackTableView(QWidget* pParent,
           m_dropRow(-1) {
     // Connect slots and signals to make the world go 'round.
     connect(this, &WTrackTableView::doubleClicked, this, &WTrackTableView::slotMouseDoubleClicked);
+
+    m_prefetchTimer.setSingleShot(true);
+    m_prefetchTimer.setInterval(kRemoteTrackPrefetchDelayMs);
+    connect(&m_prefetchTimer, &QTimer::timeout, this, [this]() {
+        TrackModel* pTrackModel = getTrackModel();
+        const QModelIndexList indices = getSelectedRows();
+        if (pTrackModel && m_prefetchIndex.isValid() && indices.size() == 1 &&
+                indices.first().row() == m_prefetchIndex.row()) {
+            pTrackModel->requestTrack(m_prefetchIndex, nullptr);
+        }
+    });
 
     m_pCOTGuiTick = new ControlProxy(QStringLiteral("[App]"),
             QStringLiteral("gui_tick_50ms_period_s"),
@@ -128,6 +146,7 @@ void WTrackTableView::slotScrollValueChanged(int /*unused*/) {
 void WTrackTableView::selectionChanged(
         const QItemSelection& selected, const QItemSelection& deselected) {
     m_selectionChangedSinceLastGuiTick = true;
+    m_prefetchTimer.stop();
     enableCachedOnly();
     // Workaround for Qt6 bug https://bugreports.qt.io/browse/QTBUG-108595:
     // If 'selectedClick' is enabled Ctrl+click opens the editor instead of
@@ -162,7 +181,13 @@ void WTrackTableView::slotGuiTick50ms(double /*unused*/) {
             if (indices.size() == 1 && indices.first().isValid()) {
                 // A single track has been selected
                 TrackModel* pTrackModel = getTrackModel();
-                if (pTrackModel) {
+                if (pTrackModel && !pTrackModel->isTrackAvailable(indices.first())) {
+                    // Remote track: download it in the background if the
+                    // selection does not change for a moment.
+                    m_prefetchIndex = indices.first();
+                    m_prefetchTimer.start();
+                    emit trackSelected(TrackPointer());
+                } else if (pTrackModel) {
                     TrackPointer pTrack = pTrackModel->getTrack(indices.first());
                     if (pTrack) {
                         emit trackSelected(pTrack);
@@ -435,6 +460,16 @@ void WTrackTableView::slotMouseDoubleClicked(const QModelIndex& index) {
     if (doubleClickAction == DlgPrefLibrary::TrackDoubleClickAction::LoadToDeck &&
             pTrackModel->hasCapabilities(
                     TrackModel::Capability::LoadToDeck)) {
+        if (!pTrackModel->isTrackAvailable(index)) {
+            // Remote track: load it as soon as it has been downloaded.
+            QPointer<WTrackTableView> pThis(this);
+            pTrackModel->requestTrack(index, [pThis](TrackPointer pTrack) {
+                if (pThis && pTrack) {
+                    emit pThis->loadTrack(pTrack);
+                }
+            });
+            return;
+        }
         TrackPointer pTrack = pTrackModel->getTrack(index);
         if (pTrack) {
             emit loadTrack(pTrack);
@@ -739,6 +774,11 @@ void WTrackTableView::mouseMoveEvent(QMouseEvent* pEvent) {
         for (const QModelIndex& index : indices) {
             if (!index.isValid()) {
                 continue;
+            }
+            if (!pTrackModel->isTrackAvailable(index)) {
+                // Remote track: start downloading right away, the drop target
+                // loads it once it is there.
+                pTrackModel->requestTrack(index, nullptr);
             }
             locations.append(pTrackModel->getTrackLocation(index));
         }
@@ -1529,6 +1569,37 @@ void WTrackTableView::loadSelectedTrackToGroup(const QString& group,
     }
     auto index = indices.at(0);
     auto* pTrackModel = getTrackModel();
+    if (pTrackModel && !pTrackModel->isTrackAvailable(index)) {
+        // Remote track: load it as soon as it has been downloaded, unless
+        // another track was loaded into the deck or it started playing in the
+        // meantime.
+        const quint64 token = DeferredTrackLoad::begin(group);
+        QPointer<WTrackTableView> pThis(this);
+        pTrackModel->requestTrack(index,
+                [pThis,
+                        token,
+                        group,
+#ifdef __STEM__
+                        stemMask,
+#endif
+                        play,
+                        allowLoadTrackIntoPlayingDeck](TrackPointer pTrack) {
+                    if (!pThis || !pTrack || !DeferredTrackLoad::isStillWanted(group, token)) {
+                        return;
+                    }
+                    if (!allowLoadTrackIntoPlayingDeck &&
+                            !PlayerManager::isPreviewDeckGroup(group) &&
+                            ControlObject::get(ConfigKey(group, "play")) > 0.0) {
+                        return;
+                    }
+#ifdef __STEM__
+                    emit pThis->loadTrackToPlayer(pTrack, group, stemMask, play);
+#else
+            emit pThis->loadTrackToPlayer(pTrack, group, play);
+#endif
+                });
+        return;
+    }
     TrackPointer pTrack;
     if (pTrackModel && (pTrack = pTrackModel->getTrack(index))) {
 #ifdef __STEM__

@@ -1,10 +1,12 @@
 #include "library/tabledelegates/previewbuttondelegate.h"
 
 #include <QPainter>
+#include <QPointer>
 #include <QPushButton>
 #include <QStyleOptionButton>
 
 #include "control/controlproxy.h"
+#include "library/remotetrackprovider.h"
 #include "mixer/playerinfo.h"
 #include "mixer/playermanager.h"
 #include "moc_previewbuttondelegate.cpp"
@@ -211,6 +213,24 @@ void PreviewButtonDelegate::buttonClicked() {
     }
     TrackModel* const pTrackModel = trackModel(m_pTableView);
     VERIFY_OR_DEBUG_ASSERT(pTrackModel) {
+        return;
+    }
+
+    if (!pTrackModel->isTrackAvailable(m_currentEditedCellIndex)) {
+        // Remote track: preview it as soon as it has been downloaded.
+        m_pTableView->selectRow(m_currentEditedCellIndex.row());
+        const quint64 token = DeferredTrackLoad::begin(kPreviewDeckGroup);
+        QPointer<PreviewButtonDelegate> pThis(this);
+        pTrackModel->requestTrack(m_currentEditedCellIndex, [pThis, token](TrackPointer pTrack) {
+            if (pThis && pTrack && DeferredTrackLoad::isStillWanted(kPreviewDeckGroup, token)) {
+                emit pThis->loadTrackToPlayer(pTrack,
+                        kPreviewDeckGroup,
+#ifdef __STEM__
+                        mixxx::StemChannelSelection(),
+#endif
+                        true);
+            }
+        });
         return;
     }
 

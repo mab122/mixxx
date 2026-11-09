@@ -2,7 +2,9 @@
 
 #include <QApplication>
 #include <QDir>
+#include <QFileInfo>
 #include <QMessageBox>
+#include <QPointer>
 
 #include "control/controlobject.h"
 #include "controllers/keyboard/keyboardeventfilter.h"
@@ -22,6 +24,7 @@
 #include "library/mixxxlibraryfeature.h"
 #include "library/recording/recordingfeature.h"
 #include "library/rekordbox/rekordboxfeature.h"
+#include "library/remotetrackprovider.h"
 #include "library/rhythmbox/rhythmboxfeature.h"
 #include "library/serato/seratofeature.h"
 #include "library/sidebarmodel.h"
@@ -578,6 +581,33 @@ void Library::slotLoadTrack(TrackPointer pTrack) {
 }
 
 void Library::slotLoadLocationToPlayer(const QString& location, const QString& group, bool play) {
+    if (RemoteTrackProvider* pProvider = RemoteTrackProvider::forMissingFile(location)) {
+        // Dropped a track of a remote library that is not downloaded yet:
+        // load it when it is there, unless another track has been loaded
+        // into this player in the meantime.
+        const quint64 token = DeferredTrackLoad::begin(group);
+        qInfo() << "Deferred load into" << group << "waiting for download of" << location;
+        QPointer<Library> pThis(this);
+        pProvider->provide(location, [pThis, location, group, play, token](bool ok) {
+            if (!pThis) {
+                return;
+            }
+            if (!ok || !QFileInfo::exists(location)) {
+                qInfo() << "Deferred load into" << group << "failed: download of"
+                        << location << "failed";
+                return;
+            }
+            if (!DeferredTrackLoad::isStillWanted(group, token)) {
+                qInfo() << "Deferred load into" << group
+                        << "skipped: another track was loaded meanwhile";
+                return;
+            }
+            qInfo() << "Deferred load into" << group << "now loading" << location;
+            DeferredTrackLoad::invalidate(group);
+            pThis->slotLoadLocationToPlayer(location, group, play);
+        });
+        return;
+    }
     auto trackRef = TrackRef::fromFilePath(location);
     TrackPointer pTrack = m_pTrackCollectionManager->getOrAddTrack(trackRef);
     if (pTrack) {

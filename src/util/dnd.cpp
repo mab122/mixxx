@@ -4,6 +4,7 @@
 
 #include "control/controlobject.h"
 #include "library/parser.h"
+#include "library/remotetrackprovider.h"
 #include "mixer/playermanager.h"
 #include "preferences/dialog/dlgprefdeck.h"
 #include "sources/soundsourceproxy.h"
@@ -34,7 +35,9 @@ QDrag* dragUrls(
 bool addFileToList(
         mixxx::FileInfo fileInfo,
         QList<mixxx::FileInfo>* fileInfos) {
-    if (!fileInfo.checkFileExists()) {
+    if (!fileInfo.checkFileExists() &&
+            !RemoteTrackProvider::forMissingFile(fileInfo.location())) {
+        // Missing files are only accepted if they can be downloaded.
         return false;
     }
 
@@ -176,7 +179,9 @@ QList<mixxx::FileInfo> DragAndDropHelper::supportedTracksFromUrls(
         } else {
             // Url is a file or a directory
             mixxx::FileInfo fileInfo = mixxx::FileInfo::fromQUrl(url);
-            if (fileInfo.isFile()) {
+            if (fileInfo.isFile() ||
+                    // track of a remote library that is not downloaded yet
+                    RemoteTrackProvider::forMissingFile(fileInfo.location())) {
                 addFileToList(fileInfo, &fileInfos);
             } else if (fileInfo.isDir()) {
                 // Collect supported files recursively

@@ -73,6 +73,19 @@ TrackPointer ProxyTrackModel::getTrack(const QModelIndex& index) const {
     return m_pTrackModel ? m_pTrackModel->getTrack(indexSource) : TrackPointer();
 }
 
+bool ProxyTrackModel::isTrackAvailable(const QModelIndex& index) const {
+    return m_pTrackModel ? m_pTrackModel->isTrackAvailable(mapToSource(index)) : false;
+}
+
+void ProxyTrackModel::requestTrack(const QModelIndex& index,
+        std::function<void(TrackPointer)> onReady) {
+    if (m_pTrackModel) {
+        m_pTrackModel->requestTrack(mapToSource(index), std::move(onReady));
+    } else if (onReady) {
+        onReady(TrackPointer());
+    }
+}
+
 TrackPointer ProxyTrackModel::getTrackByRef(const TrackRef& trackRef) const {
     return m_pTrackModel ? m_pTrackModel->getTrackByRef(trackRef) : TrackPointer();
 }

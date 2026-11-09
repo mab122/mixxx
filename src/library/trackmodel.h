@@ -4,6 +4,7 @@
 #include <QList>
 #include <QUrl>
 #include <QVector>
+#include <functional>
 
 #include "library/coverart.h"
 #include "library/dao/settingsdao.h"
@@ -109,6 +110,27 @@ class TrackModel {
     // or TrackRef in this result set.
     virtual TrackPointer getTrack(const QModelIndex& index) const = 0;
     virtual TrackPointer getTrackByRef(const TrackRef& trackRef) const = 0;
+
+    /// Models backed by a remote library (e.g. Jellyfin) may hold tracks
+    /// whose file is not available locally yet. For those getTrack() returns
+    /// nullptr without blocking and callers that want to load the track
+    /// should use requestTrack() instead.
+    virtual bool isTrackAvailable(const QModelIndex& index) const {
+        Q_UNUSED(index);
+        return true;
+    }
+
+    /// Makes the track available (e.g. downloads it) without blocking and
+    /// then calls onReady on the GUI thread, with nullptr on failure. With an
+    /// empty onReady the track is only prefetched. The default implementation
+    /// calls getTrack() synchronously.
+    virtual void requestTrack(const QModelIndex& index,
+            std::function<void(TrackPointer)> onReady) {
+        TrackPointer pTrack = getTrack(index);
+        if (onReady) {
+            onReady(std::move(pTrack));
+        }
+    }
 
     /// Get the URL of the track at the given QModelIndex.
     ///
